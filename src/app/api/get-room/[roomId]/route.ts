@@ -12,6 +12,7 @@ export async function GET(
       where: { id: roomId },
     });
 
+
     return NextResponse.json(room, { status: 200 });
   } catch (error) {
     return NextResponse.json(
