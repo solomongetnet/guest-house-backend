@@ -1,0 +1,302 @@
+model User {
+  id            String  @id @default(cuid())
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  role       String    @default("GUEST")
+  banned     Boolean?
+  banReason  String?
+  banExpires DateTime?
+
+  sessions         Session[]
+  accounts         Account[]
+  rooms            Room[]     @relation("OccupiedRooms")
+  bookings         Booking[]
+  approvedBookings Booking[]  @relation("ApprovedBookings")
+  activity         Activity[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  expiresAt      DateTime
+  token          String
+  createdAt      DateTime
+  updatedAt      DateTime
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model GuestHouse {
+  id      String         @id @default(uuid())
+  name    String
+  address String
+  type    GuestHouseType @default(SHARED)
+
+  images     Json // [{url, name}]
+  about      About?
+  feedbacks  Json? // [{ message: String, rating: Int }]
+  location   Location?
+  facilities String[] // [ "Free Wi-Fi", "Sea view", "Breakfast included", "Airport Shuttle", ]
+  contact    Json // { phone: String, email: String }
+
+  rooms      Room[]
+  bookings   Booking[] // all bookings associated with this house
+  activities Activity[] // all actions related to this house
+  history    History[] // aggregated snapshots for this house
+
+  createdAt DateTime @default(now())
+}
+
+model Room {
+  id           String       @id @default(uuid())
+  name         String
+  roomId       String       @unique
+  type         EachRoomType @default(SINGLE)
+  price        Int
+  description  String
+  images       Json // [{url, name}]
+  availability Boolean
+
+  square_meters    Int
+  max_occupancy    Int
+  beds             Json // { single_beds: 1, double_beds: 0, queen_beds: 0, king_beds: 0, sofa_beds: 0, cribs: false }
+  living_features  Json // { private_bathroom: true, bathtub: false, shower: true, hairdryer: true, minibar: true, tv: true, streaming_tv: false, wifi_available: true}
+  kitchen_features Json // { coffee_maker: true, refrigerator: true, microwave: true }
+  accessibility    Json // { wheelchair_accessible:true }
+  hygiene_features Json // { sanitizer: true, hygiene_kits: false, digital_keys: false}
+  last_updated     DateTime @default(now())
+
+  guestHouse   GuestHouse @relation(fields: [guestHouseId], references: [id], onDelete: Cascade)
+  guestHouseId String
+
+  occupiedBy   User?   @relation("OccupiedRooms", fields: [occupiedById], references: [id], onDelete: Cascade)
+  occupiedById String?
+
+  Activity Activity[]
+  Booking  Booking[]
+}
+
+model About {
+  id          String  @id @default(uuid())
+  description String
+  review      Review?
+
+  guestHouse   GuestHouse @relation(fields: [guestHouseId], references: [id], onDelete: Cascade)
+  guestHouseId String     @unique
+}
+
+model Review {
+  id             String @id @default(uuid())
+  averageRating  Float
+  totalReviewers Int
+
+  about   About  @relation(fields: [aboutId], references: [id], onDelete: Cascade)
+  aboutId String @unique
+}
+
+model Location {
+  id        String  @id @default(uuid())
+  continent String
+  country   String
+  city      String
+  subcity   String
+  nearby    String?
+
+  guestHouse   GuestHouse @relation(fields: [guestHouseId], references: [id], onDelete: Cascade)
+  guestHouseId String     @unique
+}
+
+model Booking {
+  id String @id @default(uuid())
+
+  checkIn  DateTime
+  checkOut DateTime
+  guests   Int
+  status   BookingStatus @default(PENDING)
+
+  paymentStatus  PaymentStatus @default(PENDING)
+  transactionRef String?
+  paymentInfo    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  approvedBy   User?   @relation("ApprovedBookings", fields: [approvedById], references: [id])
+  approvedById String?
+
+  room   Room   @relation(fields: [roomId], references: [id])
+  roomId String
+
+  GuestHouse   GuestHouse? @relation(fields: [guestHouseId], references: [id])
+  guestHouseId String?
+
+  activities Activity[]
+}
+
+model History {
+  id String @id @default(cuid())
+
+  date  DateTime @unique // Snapshot date (daily granularity)
+  year  Int
+  month Int
+  day   Int
+
+  totalRooms    Int // Total number of rooms available in the property (GuestHouse.rooms.count)
+  occupiedRooms Int // Number of rooms actually occupied on this day
+  occupancyRate Float // Formula: occupiedRooms / totalRooms * 100
+
+  totalReservations Int // Total number of reservations created on this day
+  totalIncome       Float // Total successful payments for bookings on this day (SUM of booking payments with status=SUCCESS)
+
+  averageDailyRate Float // ADR: Formula = totalIncome / occupiedRooms
+  revPAR           Float // Revenue per available room: Formula = totalIncome / totalRooms
+  totalProfit      Float // Revenue - expenses (if you track costs separately)
+  gopPAR           Float? // Gross Operating Profit per available room: Formula = totalProfit / totalRooms
+
+  averageLengthOfStay Float? // Formula: SUM(nights stayed per booking) / totalReservations
+  bookingPace         Int? // Number of new bookings made *today* for any future date
+  averageLeadTime     Float? // Formula: AVG(days between bookingDate and checkInDate)
+
+  directBookings Int?
+  otaBookings    Int?
+  groupBookings  Int?
+
+  avgRating Float? // Average rating of reviews submitted on this day
+  npsScore  Float? // Net Promoter Score (promoters - detractors) / total respondents * 100
+
+  guestHouseId String?
+  guestHouse   GuestHouse? @relation(fields: [guestHouseId], references: [id])
+
+  Activity Activity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("history")
+}
+
+model Activity {
+  id String @id @default(cuid())
+
+  action    ActivityAction
+  timestamp DateTime       @default(now())
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+  bookingId String?
+
+  room   Room?   @relation(fields: [roomId], references: [id])
+  roomId String?
+
+  guestHouse   GuestHouse? @relation(fields: [guestHouseId], references: [id])
+  guestHouseId String?
+
+  history   History? @relation(fields: [historyId], references: [id])
+  historyId String?
+
+  details   Json?
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@map("activity")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum GuestHouseType {
+  PRIVATE
+  SHARED
+}
+
+enum EachRoomType {
+  SINGLE
+  DOUBLE
+  TWIN
+  DELUXE
+  SUITE
+  FAMILY
+  STUDIO
+  EXECUTIVE
+  PRESIDENTIAL
+}
+
+enum ActivityAction {
+  BOOKED
+  UPDATED_BOOKING
+  CANCELLED_BOOKING
+  APPROVED_BOOKING
+  REJECTED_BOOKING
+  CHECKED_IN
+  CHECKED_OUT
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  USER_BANNED
+  USER_UNBANNED
+  DELETE_GUEST_HOUSE
+  UPDATE_GUEST_HOUSE
+  DELETE_ROOM
+  UPDATE_ROOM
+}
