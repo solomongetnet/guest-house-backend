@@ -6,7 +6,7 @@ import { ac, ADMIN, GUEST, STAFF } from "./permissions";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
-    provider: "mysql",
+    provider: "postgresql",
   }),
   trustedOrigins: ["http://localhost:3001", "myapp://"],
   databaseHooks: {
@@ -28,9 +28,11 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
+    minPasswordLength: 4,
   },
   advanced: {
     useSecureCookies: true,
+
     cookies: {
       session_token: {
         attributes: {
