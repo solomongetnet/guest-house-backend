@@ -13,7 +13,6 @@ export async function POST(req: Request) {
       );
     }
 
-
     if (values.roomId) {
       const existingRoom = await prisma.room.findUnique({
         where: { roomId: values.roomId },
