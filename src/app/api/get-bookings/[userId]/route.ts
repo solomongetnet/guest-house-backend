@@ -1,13 +1,21 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request) {
-  const { userId } = await req.json();
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ userId: string }> }
+) {
+  const userId = (await params).userId;
 
   try {
     const bookings = await prisma.booking.findMany({
       where: {
         userId,
+      },
+      include: {
+        GuestHouse: true,
+        room: true,
+        user: true,
       },
     });
 

@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
-  const { data, user } = await req.json();
-
-  const autoApprove = user.role === "STAFF" || user.role === "ADMIN";
+  const data = await req.json();
 
   try {
     // Fetch room details to calculate pricing
@@ -46,8 +44,7 @@ export async function POST(req: Request) {
         checkIn: checkInDate,
         checkOut: checkOutDate,
         guests: data.guests,
-        status: autoApprove ? "APPROVED" : "PENDING",
-        approvedById: autoApprove ? user.id : null,
+        status: "PENDING",
       },
     });
 

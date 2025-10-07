@@ -12,6 +12,11 @@ export async function GET(
       where: {
         id: bookingId,
       },
+      include: {
+        GuestHouse: true,
+        room: true,
+        user: true,
+      },
     });
 
     return NextResponse.json(bookDoc, { status: 200 });

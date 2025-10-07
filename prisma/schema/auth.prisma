@@ -91,35 +91,6 @@ model GuestHouse {
   createdAt DateTime @default(now())
 }
 
-model Room {
-  id           String       @id @default(uuid())
-  name         String
-  roomId       String       @unique
-  type         EachRoomType @default(SINGLE)
-  price        Int
-  description  String
-  images       Json // [{url, name}]
-  availability Boolean
-
-  square_meters    Int
-  max_occupancy    Int
-  beds             Json // { single_beds: 1, double_beds: 0, queen_beds: 0, king_beds: 0, sofa_beds: 0, cribs: false }
-  living_features  Json // { private_bathroom: true, bathtub: false, shower: true, hairdryer: true, minibar: true, tv: true, streaming_tv: false, wifi_available: true}
-  kitchen_features Json // { coffee_maker: true, refrigerator: true, microwave: true }
-  accessibility    Json // { wheelchair_accessible:true }
-  hygiene_features Json // { sanitizer: true, hygiene_kits: false, digital_keys: false}
-  last_updated     DateTime @default(now())
-
-  guestHouse   GuestHouse @relation(fields: [guestHouseId], references: [id], onDelete: Cascade)
-  guestHouseId String
-
-  occupiedBy   User?   @relation("OccupiedRooms", fields: [occupiedById], references: [id], onDelete: Cascade)
-  occupiedById String?
-
-  Activity Activity[]
-  Booking  Booking[]
-}
-
 model About {
   id          String  @id @default(uuid())
   description String
@@ -148,6 +119,35 @@ model Location {
 
   guestHouse   GuestHouse @relation(fields: [guestHouseId], references: [id], onDelete: Cascade)
   guestHouseId String     @unique
+}
+
+model Room {
+  id           String       @id @default(uuid())
+  name         String
+  roomId       String       @unique
+  type         EachRoomType @default(SINGLE)
+  price        Int
+  description  String
+  images       Json // [{url, name}]
+  availability Boolean
+
+  square_meters    Int
+  max_occupancy    Int
+  beds             Json // { single_beds: 1, double_beds: 0, queen_beds: 0, king_beds: 0, sofa_beds: 0, cribs: false }
+  living_features  Json // { private_bathroom: true, bathtub: false, shower: true, hairdryer: true, minibar: true, tv: true, streaming_tv: false, wifi_available: true}
+  kitchen_features Json // { coffee_maker: true, refrigerator: true, microwave: true }
+  accessibility    Json // { wheelchair_accessible:true }
+  hygiene_features Json // { sanitizer: true, hygiene_kits: false, digital_keys: false}
+  last_updated     DateTime @default(now())
+
+  guestHouse   GuestHouse @relation(fields: [guestHouseId], references: [id], onDelete: Cascade)
+  guestHouseId String
+
+  occupiedBy   User?   @relation("OccupiedRooms", fields: [occupiedById], references: [id], onDelete: Cascade)
+  occupiedById String?
+
+  Activity Activity[]
+  Booking  Booking[]
 }
 
 model Booking {
