@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     const city = searchParams.get("city") || undefined;
     const subcity = searchParams.get("subcity") || undefined;
     const type = searchParams.get("type") || undefined;
+    const search = searchParams.get("search") || undefined;
 
     // 🧠 Build dynamic Prisma filter
     const filters: any = {
@@ -44,6 +45,27 @@ export async function GET(req: Request) {
             },
           },
         },
+      });
+    }
+
+    // Powerful search across multiple fields
+    if (search) {
+      filters.AND.push({
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
+          { location: { city: { contains: search, mode: "insensitive" } } },
+          { location: { subcity: { contains: search, mode: "insensitive" } } },
+          {
+            about: {
+              some: {
+                review: {
+                  some: { comment: { contains: search, mode: "insensitive" } },
+                },
+              },
+            },
+          },
+        ],
       });
     }
 
