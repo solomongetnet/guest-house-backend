@@ -17,6 +17,9 @@ export async function GET(
         room: true,
         user: true,
       },
+      orderBy: {
+        createdAt: "desc", // newest first
+      },
     });
 
     return NextResponse.json(bookings, { status: 200 });
