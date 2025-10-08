@@ -10,8 +10,10 @@ export async function GET(
   try {
     const room = await prisma.room.findUnique({
       where: { id: roomId },
+      include: {
+        guestHouse: true,
+      },
     });
-
 
     return NextResponse.json(room, { status: 200 });
   } catch (error) {
